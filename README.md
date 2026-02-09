@@ -11,7 +11,7 @@ A modern, full-stack application for booking meeting rooms and workspaces. Built
 
 ## 📸 Demo Preview
 
-![Room Booking Home Page](https://github.com/lokeshvijay7/room-booking-cf/demo-image.png)
+![Room Booking Home Page](https://github.com/lokeshvijay7/room-booking-cf/blob/main/demo-image.png)
 
 
 ## ✨ Features
