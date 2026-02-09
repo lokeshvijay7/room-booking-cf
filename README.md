@@ -93,8 +93,8 @@ The app is optimized for free deployment on **Vercel**.
 
 For a deep dive into the architecture and database schema, please refer to:
 *   [Project Documentation](project_documentation.md)
-*   [Admin Guide](ADMIN_GUIDE.md)
+
 
 ---
 
-Developed by [Your Name]
+Developed by Lokesh K V
