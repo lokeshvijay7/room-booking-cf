@@ -10,9 +10,11 @@ import { Calendar, Clock, Box, CheckCircle, ShieldCheck, MapPin } from 'lucide-r
 import BookingTicket from '@/components/bookings/BookingTicket';
 import LocationMap from '@/components/ui/LocationMap';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function BookingHistory() {
     const { user } = useAuth();
+    const { toast } = useToast();
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -49,9 +51,6 @@ export default function BookingHistory() {
     const handlePayment = async (booking) => {
         if (!booking) return;
 
-        // Don't set global loading as it hides the list, maybe usage local loading or toast?
-        // For now, we'll use a simple alert if it fails, or rely on Razorpay's modal.
-
         const options = {
             key: import.meta.env.VITE_RAZORPAY_KEY_ID,
             amount: booking.total_price * 100,
@@ -62,14 +61,26 @@ export default function BookingHistory() {
             handler: async function (response) {
                 console.log("Razorpay payment success:", response);
                 try {
+                    toast({
+                        title: "Processing Payment...",
+                        description: "Verifying your transaction.",
+                    });
                     await api.processPayment(booking.id);
                     // Reload bookings
                     const data = await api.getUserBookings(user.id);
                     setBookings(data || []);
-                    alert("Payment Successful!");
+                    toast({
+                        title: "Payment Successful!",
+                        description: "Your booking is now fully paid.",
+                        className: "bg-green-600 text-white border-none",
+                    });
                 } catch (e) {
                     console.error("Payment Verification Failed", e);
-                    alert("Payment verification failed. Please contact support.");
+                    toast({
+                        variant: "destructive",
+                        title: "Verification Failed",
+                        description: "Payment successful, but verification failed. Please contact support.",
+                    });
                 }
             },
             prefill: {
@@ -88,12 +99,20 @@ export default function BookingHistory() {
         try {
             const rzp1 = new window.Razorpay(options);
             rzp1.on('payment.failed', function (response) {
-                alert(`Payment Failed: ${response.error.description}`);
+                toast({
+                    variant: "destructive",
+                    title: "Payment Failed",
+                    description: response.error.description || "The payment could not be processed.",
+                });
             });
             rzp1.open();
         } catch (err) {
             console.error("Razorpay Error:", err);
-            alert("Failed to load payment gateway.");
+            toast({
+                variant: "destructive",
+                title: "System Error",
+                description: "Failed to load payment gateway. Check your connection.",
+            });
         }
     };
 

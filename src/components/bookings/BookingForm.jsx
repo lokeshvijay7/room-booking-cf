@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'; // Ensure Dialog imports
 import BookingTicket from './BookingTicket';
 import LocationMap from '@/components/ui/LocationMap';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function BookingForm({ room, onSuccess }) {
     const { user } = useAuth();
@@ -191,6 +192,7 @@ export default function BookingForm({ room, onSuccess }) {
         }
     };
 
+    const { toast } = useToast();
     const handlePayment = async () => {
         setLoading(true);
         setError(null);
@@ -209,14 +211,28 @@ export default function BookingForm({ room, onSuccess }) {
                 try {
                     // Call backend to verify and update booking
                     if (bookingId) {
+                        toast({
+                            title: "Processing Payment...",
+                            description: "Please wait while we verify your transaction.",
+                        });
                         console.log("Verifying payment for booking:", bookingId);
                         await api.processPayment(bookingId); // Updates status to 'paid'
                         console.log("Payment verification successful");
                     }
                     setStep('success');
+                    toast({
+                        title: "Payment Successful!",
+                        description: "Your room has been booked.",
+                        className: "bg-green-600 text-white border-none",
+                    });
                     if (onSuccess) onSuccess();
                 } catch (e) {
                     console.error("Payment Verification Failed", e);
+                    toast({
+                        variant: "destructive",
+                        title: "Verification Failed",
+                        description: "Payment successful, but verification failed. Please contact support.",
+                    });
                     setError("Payment successful, but verification failed. Please contact support.");
                 }
             },
@@ -235,6 +251,9 @@ export default function BookingForm({ room, onSuccess }) {
             modal: {
                 ondismiss: function () {
                     setLoading(false);
+                    toast({
+                        description: "Payment cancelled.",
+                    });
                 }
             }
         };
@@ -242,13 +261,25 @@ export default function BookingForm({ room, onSuccess }) {
         try {
             const rzp1 = new window.Razorpay(options);
             rzp1.on('payment.failed', function (response) {
-                setError(`Payment Failed: ${response.error.description}`);
+                const errorMsg = response.error.description || "Payment failed";
+                setError(`Payment Failed: ${errorMsg}`);
+                toast({
+                    variant: "destructive",
+                    title: "Payment Actions Failed",
+                    description: errorMsg,
+                });
                 setLoading(false);
             });
             rzp1.open();
         } catch (err) {
             console.error("Razorpay Error:", err);
-            setError("Failed to load payment gateway. Please check connection.");
+            const msg = "Failed to load payment gateway. Please check connection.";
+            setError(msg);
+            toast({
+                variant: "destructive",
+                title: "System Error",
+                description: msg,
+            });
             setLoading(false);
         }
     };

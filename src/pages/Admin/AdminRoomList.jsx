@@ -15,9 +15,10 @@ import {
 import { Plus, Trash2, Edit, Loader2, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-// import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function AdminRoomList({ rooms, onUpdate }) {
+    const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [isAddOpen, setIsAddOpen] = useState(false);
 
@@ -34,10 +35,18 @@ export default function AdminRoomList({ rooms, onUpdate }) {
         if (!confirm("Are you sure you want to delete this room?")) return;
         try {
             await api.deleteRoom(id);
+            toast({
+                title: "Room Deleted",
+                description: "The room has been successfully removed.",
+            });
             onUpdate();
         } catch (e) {
             console.error(e);
-            alert("Failed to delete room");
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to delete room.",
+            });
         }
     };
 
@@ -63,11 +72,21 @@ export default function AdminRoomList({ rooms, onUpdate }) {
             setImage('');
             setLatitude('');
             setLongitude('');
-            alert("Room created successfully!");
+
+            toast({
+                title: "Success",
+                description: "Room created successfully!",
+                className: "bg-green-500 text-white",
+            });
+
             onUpdate();
         } catch (e) {
             console.error(e);
-            alert("Failed to create room: " + e.message);
+            toast({
+                variant: "destructive",
+                title: "Submission Failed",
+                description: e.message || "Could not create room.",
+            });
         } finally {
             setLoading(false);
         }
@@ -75,16 +94,28 @@ export default function AdminRoomList({ rooms, onUpdate }) {
 
     const handleGetCurrentLocation = () => {
         if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser");
+            toast({
+                variant: "destructive",
+                title: "Geolocation Error",
+                description: "Geolocation is not supported by your browser",
+            });
             return;
         }
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 setLatitude(position.coords.latitude.toFixed(6));
                 setLongitude(position.coords.longitude.toFixed(6));
+                toast({
+                    title: "Location Found",
+                    description: "Coordinates updated.",
+                });
             },
             (error) => {
-                alert("Unable to retrieve your location: " + error.message);
+                toast({
+                    variant: "destructive",
+                    title: "Location Error",
+                    description: "Unable to retrieve your location: " + error.message,
+                });
             }
         );
     };
@@ -190,92 +221,7 @@ export default function AdminRoomList({ rooms, onUpdate }) {
                                             <td className="p-4 font-semibold">₹{room.price_per_hour}/hr</td>
                                             <td className="p-4 text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Dialog>
-                                                        <DialogTrigger asChild>
-                                                            <Button variant="ghost" size="icon" onClick={() => {
-                                                                // Pre-fill form (simple inline approach or separate state)
-                                                                setName(room.name);
-                                                                setDescription(room.description);
-                                                                setCapacity(room.capacity.toString());
-                                                                setPrice(room.price_per_hour.toString());
-                                                                setImage(room.image_url);
-                                                                setLatitude(room.latitude || '');
-                                                                setLongitude(room.longitude || '');
-                                                            }}>
-                                                                <Edit className="h-4 w-4 text-blue-500" />
-                                                            </Button>
-                                                        </DialogTrigger>
-                                                        <DialogContent className="sm:max-w-[425px]">
-                                                            <DialogHeader>
-                                                                <DialogTitle>Edit Room</DialogTitle>
-                                                                <DialogDescription>
-                                                                    Update room details.
-                                                                </DialogDescription>
-                                                            </DialogHeader>
-                                                            <form onSubmit={async (e) => {
-                                                                e.preventDefault();
-                                                                setLoading(true);
-                                                                try {
-                                                                    await api.updateRoom(room.id, {
-                                                                        name,
-                                                                        description,
-                                                                        capacity: parseInt(capacity),
-                                                                        price_per_hour: parseFloat(price),
-                                                                        image_url: image,
-                                                                        latitude: latitude ? parseFloat(latitude) : null,
-                                                                        longitude: longitude ? parseFloat(longitude) : null
-                                                                    });
-                                                                    alert("Room updated!");
-                                                                    onUpdate();
-                                                                } catch (e) {
-                                                                    alert("Update failed: " + e.message);
-                                                                } finally {
-                                                                    setLoading(false);
-                                                                }
-                                                            }} className="grid gap-4 py-4">
-                                                                <div className="grid gap-2">
-                                                                    <Label>Room Name</Label>
-                                                                    <Input value={name} onChange={e => setName(e.target.value)} required />
-                                                                </div>
-                                                                <div className="grid gap-2">
-                                                                    <Label>Description</Label>
-                                                                    <Input value={description} onChange={e => setDescription(e.target.value)} />
-                                                                </div>
-                                                                <div className="grid grid-cols-2 gap-4">
-                                                                    <div className="grid gap-2">
-                                                                        <Label>Capacity</Label>
-                                                                        <Input type="number" min="1" value={capacity} onChange={e => setCapacity(e.target.value)} required />
-                                                                    </div>
-                                                                    <div className="grid gap-2">
-                                                                        <Label>Price (₹/hr)</Label>
-                                                                        <Input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
-                                                                    </div>
-                                                                </div>
-                                                                <div className="grid gap-2">
-                                                                    <Label>Image URL</Label>
-                                                                    <Input value={image} onChange={e => setImage(e.target.value)} />
-                                                                </div>
-                                                                <div className="grid grid-cols-2 gap-4">
-                                                                    <div className="grid gap-2">
-                                                                        <Label>Latitude</Label>
-                                                                        <Input type="number" step="0.0001" value={latitude} onChange={e => setLatitude(e.target.value)} />
-                                                                    </div>
-                                                                    <div className="grid gap-2">
-                                                                        <Label>Longitude</Label>
-                                                                        <Input type="number" step="0.0001" value={longitude} onChange={e => setLongitude(e.target.value)} />
-                                                                    </div>
-                                                                </div>
-                                                                <Button type="button" variant="outline" size="sm" onClick={handleGetCurrentLocation} className="w-full">
-                                                                    <MapPin className="mr-2 h-3 w-3" /> Use Current Location
-                                                                </Button>
-                                                                <DialogFooter>
-                                                                    <Button type="submit" disabled={loading}>
-                                                                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
-                                                                    </Button>
-                                                                </DialogFooter>
-                                                            </form>
-                                                        </DialogContent>
-                                                    </Dialog>
+                                                    <RoomEditDialog room={room} onUpdate={onUpdate} />
 
                                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(room.id)}>
                                                         <Trash2 className="h-4 w-4" />
@@ -290,5 +236,139 @@ export default function AdminRoomList({ rooms, onUpdate }) {
                 </CardContent>
             </Card>
         </div>
+    );
+}
+
+function RoomEditDialog({ room, onUpdate }) {
+    const { toast } = useToast();
+    const [open, setOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // State
+    const [name, setName] = useState(room.name);
+    const [description, setDescription] = useState(room.description || '');
+    const [capacity, setCapacity] = useState(room.capacity.toString());
+    const [price, setPrice] = useState(room.price_per_hour.toString());
+    const [image, setImage] = useState(room.image_url || '');
+    const [latitude, setLatitude] = useState(room.latitude || '');
+    const [longitude, setLongitude] = useState(room.longitude || '');
+
+    const handleUpdate = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        try {
+            await api.updateRoom(room.id, {
+                name,
+                description,
+                capacity: parseInt(capacity),
+                price_per_hour: parseFloat(price),
+                image_url: image,
+                latitude: latitude ? parseFloat(latitude) : null,
+                longitude: longitude ? parseFloat(longitude) : null
+            });
+            setOpen(false);
+            toast({
+                title: "Success",
+                description: "Room updated successfully!",
+                className: "bg-green-500 text-white",
+            });
+            onUpdate();
+        } catch (e) {
+            toast({
+                variant: "destructive",
+                title: "Update Failed",
+                description: e.message,
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGetCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            toast({
+                variant: "destructive",
+                title: "Geolocation Error",
+                description: "Geolocation is not supported by your browser",
+            });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLatitude(position.coords.latitude.toFixed(6));
+                setLongitude(position.coords.longitude.toFixed(6));
+                toast({
+                    title: "Location Found",
+                    description: "Coordinates updated.",
+                });
+            },
+            (error) => {
+                toast({
+                    variant: "destructive",
+                    title: "Location Error",
+                    description: "Unable to retrieve your location: " + error.message,
+                });
+            }
+        );
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                    <Edit className="h-4 w-4 text-blue-500" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Edit Room</DialogTitle>
+                    <DialogDescription>
+                        Update room details.
+                    </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleUpdate} className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                        <Label>Room Name</Label>
+                        <Input value={name} onChange={e => setName(e.target.value)} required />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Description</Label>
+                        <Input value={description} onChange={e => setDescription(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label>Capacity</Label>
+                            <Input type="number" min="1" value={capacity} onChange={e => setCapacity(e.target.value)} required />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Price (₹/hr)</Label>
+                            <Input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} required />
+                        </div>
+                    </div>
+                    <div className="grid gap-2">
+                        <Label>Image URL</Label>
+                        <Input value={image} onChange={e => setImage(e.target.value)} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label>Latitude</Label>
+                            <Input type="number" step="0.0001" value={latitude} onChange={e => setLatitude(e.target.value)} />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Longitude</Label>
+                            <Input type="number" step="0.0001" value={longitude} onChange={e => setLongitude(e.target.value)} />
+                        </div>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" onClick={handleGetCurrentLocation} className="w-full">
+                        <MapPin className="mr-2 h-3 w-3" /> Use Current Location
+                    </Button>
+                    <DialogFooter>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
