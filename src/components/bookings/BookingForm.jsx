@@ -4,9 +4,11 @@ import { api } from '@/services/api';
 import { addHours, set } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, CheckCircle, Calendar as CalendarIcon, Clock, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle, Calendar as CalendarIcon, Clock, ShieldCheck, AlertTriangle, MapPin, Mail } from 'lucide-react'; // map pin
 import { Label } from '@/components/ui/label';
-import { DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger, DialogClose, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'; // Ensure Dialog imports
+import BookingTicket from './BookingTicket';
+import LocationMap from '@/components/ui/LocationMap';
 
 export default function BookingForm({ room, onSuccess }) {
     const { user } = useAuth();
@@ -26,7 +28,9 @@ export default function BookingForm({ room, onSuccess }) {
     const [step, setStep] = useState('details'); // details, payment, success
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
     const [bookingId, setBookingId] = useState(null);
+    const [bookingDetails, setBookingDetails] = useState(null);
     const [conflictWarning, setConflictWarning] = useState(null);
 
     // Auto-Expire on mount
@@ -170,8 +174,12 @@ export default function BookingForm({ room, onSuccess }) {
 
             if (newBooking && newBooking.length > 0) {
                 setBookingId(newBooking[0].id);
+                setBookingDetails(newBooking[0]);
                 setStep('payment');
             } else {
+                // If newBooking is empty or null, it means booking creation failed or returned unexpected data.
+                // We should ideally handle this as an error, but the original code proceeds to payment.
+                // For now, we'll just ensure the step is set.
                 setStep('payment');
             }
 
@@ -197,11 +205,13 @@ export default function BookingForm({ room, onSuccess }) {
             // order_id: "order_9A33XWu170gStF", // Note: In production, generate this on backend!
             handler: async function (response) {
                 // Payment Success
-                // alert(response.razorpay_payment_id);
+                console.log("Razorpay payment success:", response);
                 try {
                     // Call backend to verify and update booking
                     if (bookingId) {
+                        console.log("Verifying payment for booking:", bookingId);
                         await api.processPayment(bookingId); // Updates status to 'paid'
+                        console.log("Payment verification successful");
                     }
                     setStep('success');
                     if (onSuccess) onSuccess();
@@ -243,6 +253,8 @@ export default function BookingForm({ room, onSuccess }) {
         }
     };
 
+
+    // ... inside success render ...
     if (step === 'success') {
         return (
             <div className="text-center py-8 space-y-4 animate-in fade-in zoom-in duration-300">
@@ -253,8 +265,50 @@ export default function BookingForm({ room, onSuccess }) {
                 <p className="text-slate-500">
                     Your payment was successful and the room is reserved.
                 </p>
+
+                {/* New Features: Ticket & Map */}
+                <div className="flex justify-center gap-3 pt-4">
+                    {bookingDetails && (
+                        <BookingTicket booking={bookingDetails} room={room} user={user} />
+                    )}
+
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="gap-2">
+                                <MapPin className="w-4 h-4" /> View Location
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-3xl">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <MapPin className="w-5 h-5 text-primary" />
+                                    {room.name} Location
+                                </DialogTitle>
+                                <DialogDescription>
+                                    View the exact location of the room on the map.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="mt-2 border rounded-xl overflow-hidden shadow-sm">
+                                <LocationMap
+                                    lat={room.latitude}
+                                    lng={room.longitude}
+                                    roomName={room.name}
+                                />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+
+                    <Button variant="outline" className="gap-2" onClick={() => {
+                        const subject = encodeURIComponent(`Booking Confirmed: ${room.name}`);
+                        const body = encodeURIComponent(`Here are my booking details:\n\nRoom: ${room.name}\nDate: ${dateStr}\nTime: ${startTime}\nDuration: ${duration} hours\n\nPlease find the attached QR code in the app.`);
+                        window.open(`mailto:?subject=${subject}&body=${body}`);
+                    }}>
+                        <Mail className="w-4 h-4" /> Share
+                    </Button>
+                </div>
+
                 <DialogClose asChild>
-                    <Button className="mt-4 w-full">Close</Button>
+                    <Button className="mt-4 w-full" variant="secondary">Close</Button>
                 </DialogClose>
             </div>
         )
@@ -403,7 +457,32 @@ export default function BookingForm({ room, onSuccess }) {
                         Cancel
                     </Button>
                 </DialogClose>
-                <Button className="w-2/3" onClick={handleBook} disabled={loading}>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="shrink-0" title="View Location">
+                            <MapPin className="h-4 w-4" />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-3xl">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <MapPin className="w-5 h-5 text-primary" />
+                                Location Map
+                            </DialogTitle>
+                            <DialogDescription>
+                                See where {room.name} is located.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="mt-2 border rounded-xl overflow-hidden shadow-sm">
+                            <LocationMap
+                                lat={room.latitude}
+                                lng={room.longitude}
+                                roomName={room.name}
+                            />
+                        </div>
+                    </DialogContent>
+                </Dialog>
+                <Button className="w-full" onClick={handleBook} disabled={loading}>
                     {loading ? (
                         <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking...

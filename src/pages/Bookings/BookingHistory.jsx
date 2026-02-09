@@ -6,7 +6,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button'; // Import Button
 import { Link } from 'react-router-dom'; // Import Link
-import { Calendar, Clock, Box, CheckCircle, ShieldCheck } from 'lucide-react';
+import { Calendar, Clock, Box, CheckCircle, ShieldCheck, MapPin } from 'lucide-react';
+import BookingTicket from '@/components/bookings/BookingTicket';
+import LocationMap from '@/components/ui/LocationMap';
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 export default function BookingHistory() {
     const { user } = useAuth();
@@ -42,6 +45,57 @@ export default function BookingHistory() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
     );
+
+    const handlePayment = async (booking) => {
+        if (!booking) return;
+
+        // Don't set global loading as it hides the list, maybe usage local loading or toast?
+        // For now, we'll use a simple alert if it fails, or rely on Razorpay's modal.
+
+        const options = {
+            key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+            amount: booking.total_price * 100,
+            currency: "INR",
+            name: "Room Booking System",
+            description: `Payment for ${booking.rooms?.name}`,
+            image: "https://example.com/your_logo",
+            handler: async function (response) {
+                console.log("Razorpay payment success:", response);
+                try {
+                    await api.processPayment(booking.id);
+                    // Reload bookings
+                    const data = await api.getUserBookings(user.id);
+                    setBookings(data || []);
+                    alert("Payment Successful!");
+                } catch (e) {
+                    console.error("Payment Verification Failed", e);
+                    alert("Payment verification failed. Please contact support.");
+                }
+            },
+            prefill: {
+                name: user?.user_metadata?.full_name || user?.email,
+                email: user?.email,
+            },
+            notes: {
+                booking_id: booking.id,
+                room_id: booking.room_id
+            },
+            theme: {
+                color: "#2563eb"
+            }
+        };
+
+        try {
+            const rzp1 = new window.Razorpay(options);
+            rzp1.on('payment.failed', function (response) {
+                alert(`Payment Failed: ${response.error.description}`);
+            });
+            rzp1.open();
+        } catch (err) {
+            console.error("Razorpay Error:", err);
+            alert("Failed to load payment gateway.");
+        }
+    };
 
     return (
         <div className="container mx-auto px-4 py-8 space-y-8 max-w-5xl">
@@ -131,12 +185,50 @@ export default function BookingHistory() {
                                                 <CheckCircle className="w-3.5 h-3.5" />
                                                 Paid via Secure Payment
                                             </div>
+                                        ) : booking.status === 'confirmed' ? (
+                                            <Button
+                                                size="sm"
+                                                className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                                                onClick={() => handlePayment(booking)}
+                                            >
+                                                <ShieldCheck className="w-4 h-4" /> Pay Now
+                                            </Button>
                                         ) : (
                                             <Badge variant="outline" className="text-yellow-600 border-yellow-200 bg-yellow-50">
-                                                Payment Pending
+                                                {booking.payment_status}
                                             </Badge>
                                         )}
-                                        {/* Placeholder for future actions like 'Cancel' or 'View Receipt' */}
+
+                                        <div className="flex gap-2 mt-4 md:mt-0">
+                                            {booking.status === 'confirmed' && booking.payment_status === 'paid' && (
+                                                <>
+                                                    <BookingTicket booking={booking} room={booking.rooms} user={user} />
+
+                                                    <Dialog>
+                                                        <DialogTrigger asChild>
+                                                            <Button variant="outline" size="icon" title="View Location">
+                                                                <MapPin className="h-4 w-4" />
+                                                            </Button>
+                                                        </DialogTrigger>
+                                                        <DialogContent className="sm:max-w-xl">
+                                                            <DialogHeader>
+                                                                <DialogTitle>Room Location</DialogTitle>
+                                                                <DialogDescription>
+                                                                    Map view of {booking.rooms?.name}
+                                                                </DialogDescription>
+                                                            </DialogHeader>
+                                                            <div className="mt-4">
+                                                                <LocationMap
+                                                                    lat={booking.rooms?.latitude}
+                                                                    lng={booking.rooms?.longitude}
+                                                                    roomName={booking.rooms?.name}
+                                                                />
+                                                            </div>
+                                                        </DialogContent>
+                                                    </Dialog>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

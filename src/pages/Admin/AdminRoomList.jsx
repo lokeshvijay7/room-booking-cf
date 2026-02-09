@@ -12,7 +12,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, Edit, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit, Loader2, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 // import { useToast } from "@/hooks/use-toast";
@@ -27,6 +27,8 @@ export default function AdminRoomList({ rooms, onUpdate }) {
     const [capacity, setCapacity] = useState('1');
     const [price, setPrice] = useState('');
     const [image, setImage] = useState('');
+    const [latitude, setLatitude] = useState('');
+    const [longitude, setLongitude] = useState('');
 
     const handleDelete = async (id) => {
         if (!confirm("Are you sure you want to delete this room?")) return;
@@ -48,7 +50,9 @@ export default function AdminRoomList({ rooms, onUpdate }) {
                 description,
                 capacity: parseInt(capacity),
                 price_per_hour: parseFloat(price),
-                image_url: image
+                image_url: image,
+                latitude: latitude ? parseFloat(latitude) : null,
+                longitude: longitude ? parseFloat(longitude) : null
             });
             setIsAddOpen(false);
             // Reset form
@@ -57,6 +61,8 @@ export default function AdminRoomList({ rooms, onUpdate }) {
             setCapacity('1');
             setPrice('');
             setImage('');
+            setLatitude('');
+            setLongitude('');
             alert("Room created successfully!");
             onUpdate();
         } catch (e) {
@@ -65,6 +71,22 @@ export default function AdminRoomList({ rooms, onUpdate }) {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleGetCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser");
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setLatitude(position.coords.latitude.toFixed(6));
+                setLongitude(position.coords.longitude.toFixed(6));
+            },
+            (error) => {
+                alert("Unable to retrieve your location: " + error.message);
+            }
+        );
     };
 
     return (
@@ -113,6 +135,19 @@ export default function AdminRoomList({ rooms, onUpdate }) {
                                     <Label htmlFor="image">Image URL</Label>
                                     <Input id="image" value={image} onChange={e => setImage(e.target.value)} placeholder="https://..." />
                                 </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>Latitude</Label>
+                                        <Input type="number" step="0.0001" value={latitude} onChange={e => setLatitude(e.target.value)} placeholder="12.9716" />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Longitude</Label>
+                                        <Input type="number" step="0.0001" value={longitude} onChange={e => setLongitude(e.target.value)} placeholder="77.5946" />
+                                    </div>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={handleGetCurrentLocation} className="w-full">
+                                    <MapPin className="mr-2 h-3 w-3" /> Use Current Location
+                                </Button>
                                 <DialogFooter>
                                     <Button type="submit" disabled={loading}>
                                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Room'}
@@ -164,6 +199,8 @@ export default function AdminRoomList({ rooms, onUpdate }) {
                                                                 setCapacity(room.capacity.toString());
                                                                 setPrice(room.price_per_hour.toString());
                                                                 setImage(room.image_url);
+                                                                setLatitude(room.latitude || '');
+                                                                setLongitude(room.longitude || '');
                                                             }}>
                                                                 <Edit className="h-4 w-4 text-blue-500" />
                                                             </Button>
@@ -184,7 +221,9 @@ export default function AdminRoomList({ rooms, onUpdate }) {
                                                                         description,
                                                                         capacity: parseInt(capacity),
                                                                         price_per_hour: parseFloat(price),
-                                                                        image_url: image
+                                                                        image_url: image,
+                                                                        latitude: latitude ? parseFloat(latitude) : null,
+                                                                        longitude: longitude ? parseFloat(longitude) : null
                                                                     });
                                                                     alert("Room updated!");
                                                                     onUpdate();
@@ -216,6 +255,19 @@ export default function AdminRoomList({ rooms, onUpdate }) {
                                                                     <Label>Image URL</Label>
                                                                     <Input value={image} onChange={e => setImage(e.target.value)} />
                                                                 </div>
+                                                                <div className="grid grid-cols-2 gap-4">
+                                                                    <div className="grid gap-2">
+                                                                        <Label>Latitude</Label>
+                                                                        <Input type="number" step="0.0001" value={latitude} onChange={e => setLatitude(e.target.value)} />
+                                                                    </div>
+                                                                    <div className="grid gap-2">
+                                                                        <Label>Longitude</Label>
+                                                                        <Input type="number" step="0.0001" value={longitude} onChange={e => setLongitude(e.target.value)} />
+                                                                    </div>
+                                                                </div>
+                                                                <Button type="button" variant="outline" size="sm" onClick={handleGetCurrentLocation} className="w-full">
+                                                                    <MapPin className="mr-2 h-3 w-3" /> Use Current Location
+                                                                </Button>
                                                                 <DialogFooter>
                                                                     <Button type="submit" disabled={loading}>
                                                                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Save Changes'}

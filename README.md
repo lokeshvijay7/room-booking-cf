@@ -1,66 +1,100 @@
-# Room Booking System
+# 🏢 Room Booking System
 
-A simplified room booking system involving bookings, payment simulation, and admin management. Built with **React + Vite** and **Supabase**.
+A modern, full-stack application for booking meeting rooms and workspaces. Built with **React**, **Supabase**, and **Tailwind CSS**.
 
-## Features
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![React](https://img.shields.io/badge/React-18.0-blue)
+![Supabase](https://img.shields.io/badge/Supabase-Auth%20%26%20DB-green)
 
-### User Features
-*   **Browse Rooms**: View multiple rooms with details, pricing, and images.
-*   **Book a Room**: 
-    *   Select date and time (Smart conflict detection prevents double booking).
-    *   Real-time availability checking.
-    *   Local timezone support (No UTC issues).
-*   **Payment Simulation**: Integrated Mock Payment Gateway (Razorpay style) via secure RPC.
-*   **My Bookings**: View booking history with status badges and payment receipt tracking.
-*   **Auto-Expiration**: Unpaid bookings expire automatically after 24 hours.
+## ✨ Features
 
-### Admin Features
-*   **Dashboard**: View key metrics (Total Bookings, Revenue).
-*   **Booking Management**: 
-    *   View all bookings in a sortable/filterable table.
-    *   **Filter** bookings by User Name, Room Name, or Status.
-*   **Room Management**: Add, Edit, or Delete rooms.
-*   **Admin Route Protection**: Secure RLS policies ensure only admins can access these pages.
+### 🚀 Core Functionality
+*   **Room Browsing**: View available rooms with high-quality images, capacity, and amenities.
+*   **Smart Booking**: Real-time availability checks with "Smart Conflict Warnings" to prevent overlaps.
+*   **Secure Payments**: Integrated **Razorpay** payment gateway for instant booking confirmation.
+*   **User Dashboard**: Manage booking history, view status, and download tickets.
 
-## Tech Stack
-*   **Frontend**: React, Vite, TailwindCSS, Shadcn UI.
-*   **Backend**: Supabase (PostgreSQL).
-*   **Security**: Row Level Security (RLS) for data protection.
-*   **Database**:
-    *   **Triggers**: Prevent double bookings at the database level.
-    *   **RPC Functions**: Handle complex availability logic and payment processing.
+### 🛡️ Security & Admin
+*   **Role-Based Access**: Specialized Admin Panel for managing rooms and overseeing all bookings.
+*   **Geolocation**: Admins can add room locations using their current GPS coordinates.
+*   **Ticket System**: Automatically generates a **QR Code Ticket** for every confirmed booking.
+*   **Row Level Security (RLS)**: Database-level security ensures users can only access their own data.
 
-## Setup Instructions
+---
 
-### 1. Prerequisites
-*   Node.js installed.
-*   A Supabase project.
+## 🛠️ Tech Stack
 
-### 2. Environment Variables
-Create a `.env` file in the root directory:
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+*   **Frontend**: React (Vite), Tailwind CSS, Shadcn UI
+*   **Backend**: Supabase (PostgreSQL, Auth, Edge Functions)
+*   **Maps**: Leaflet (OpenStreetMap)
+*   **Payments**: Razorpay
+*   **Icons**: Lucide React
 
-### 3. Database Setup
-1.  Navigate to the `schema/` directory.
-2.  Run `schema.sql` in your Supabase SQL Editor.
-3.  Run `update_schema.sql` to add the payment processing logic.
-4.  Run `seed.sql` to populate sample rooms.
-5.  (Optional) Run `fix_loki_admin.sql` to make a specific user an admin.
+---
 
-### 4. Run Locally
-```bash
-npm install
-npm run dev
-```
+## ⚡ Getting Started
 
-## Structure
-*   `/src/pages`: Main route components (Admin, Bookings, Auth).
-*   `/src/components`: Reusable UI components.
-*   `/src/services`: Supabase API wrapper.
-*   `/schema`: SQL scripts for database setup.
+### Prerequisites
+1.  Node.js (v16+)
+2.  A Supabase project (Free tier works great)
 
-## License
-MIT
+### Installation
+
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/yourusername/room-booking-cf.git
+    cd room-booking-cf
+    ```
+
+2.  **Install Dependencies**
+    ```bash
+    npm install
+    ```
+
+3.  **Environment Setup**
+    Create a `.env` file in the root directory:
+    ```env
+    VITE_SUPABASE_URL=your_supabase_url
+    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
+    ```
+
+4.  **Run Locally**
+    ```bash
+    npm run dev
+    ```
+    Open `http://localhost:5173` in your browser.
+
+---
+
+## 🚀 Deployment
+
+The app is optimized for free deployment on **Vercel**.
+
+1.  Push your code to **GitHub**.
+2.  Import the repo into **Vercel**.
+3.  Add your Environment Variables in the Vercel dashboard.
+4.  Update your Supabase **Auth Redirect URLs** to match your new Vercel domain.
+
+*See `DEPLOYMENT.md` for a detailed step-by-step guide.*
+
+---
+
+## 📂 Project Structure
+
+- `src/pages`: Main application views (Home, Booking, Admin).
+- `src/components`: Reusable UI components (Modals, RoomCard, Navbar).
+- `src/services`: API logic for Supabase interactions.
+- `schema`: Database SQL scripts for initial setup.
+
+---
+
+## 📄 Documentation
+
+For a deep dive into the architecture and database schema, please refer to:
+*   [Project Documentation](project_documentation.md)
+*   [Admin Guide](ADMIN_GUIDE.md)
+
+---
+
+Developed by [Your Name]
