@@ -101,9 +101,50 @@ export const api = {
         return { count, error };
     },
 
-    processPayment: async (bookingId) => {
-        const { data, error } = await supabase.rpc('process_payment', {
-            p_booking_id: bookingId
+    // Secure Payment: Create Order (Server Side)
+    createPaymentOrder: async (bookingId) => {
+        // Explicitly get session to ensure token is fresh
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+            console.error("No active session found in api.js");
+            throw new Error("User not authenticated");
+        }
+
+        console.log("Calling create-order with Token:", token.substring(0, 10) + "...");
+
+        const { data, error } = await supabase.functions.invoke('create-order', {
+            body: { booking_id: bookingId },
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (error) {
+            console.error("Create Order Error Details:", error);
+            // Try to extract the error message from the response body if available
+            if (error instanceof Error && error.context) {
+                try {
+                    const body = await error.context.json();
+                    console.error("Function Response Body:", body);
+                    throw new Error(body.error || error.message);
+                } catch (e) {
+                    console.error("Failed to parse error body", e);
+                }
+            }
+            throw error;
+        }
+        return data;
+    },
+
+    // Secure Payment: Verify Signature (Server Side)
+    verifyPayment: async (bookingId, paymentData) => {
+        const { data, error } = await supabase.functions.invoke('verify-payment', {
+            body: {
+                booking_id: bookingId,
+                payment_data: paymentData
+            }
         });
         if (error) throw error;
         return data;

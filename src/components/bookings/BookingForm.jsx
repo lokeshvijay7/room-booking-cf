@@ -167,8 +167,7 @@ export default function BookingForm({ room, onSuccess }) {
                 start_time: startDateTime.toISOString(),
                 end_time: endDateTime.toISOString(),
                 total_price: selectedDurationCost,
-                status: 'confirmed',
-                payment_status: 'pending'
+                status: 'confirmed'
             };
 
             const newBooking = await api.createBooking(bookingData);
@@ -197,68 +196,69 @@ export default function BookingForm({ room, onSuccess }) {
         setLoading(true);
         setError(null);
 
-        const options = {
-            key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Use env variable
-            amount: selectedDurationCost * 100, // Amount in paise
-            currency: "INR",
-            name: "Room Booking System",
-            description: `Payment for ${room.name} (${duration} hrs)`,
-            image: "https://example.com/your_logo", // You can replace this
-            // order_id: "order_9A33XWu170gStF", // Note: In production, generate this on backend!
-            handler: async function (response) {
-                // Payment Success
-                console.log("Razorpay payment success:", response);
-                try {
-                    // Call backend to verify and update booking
-                    if (bookingId) {
+        try {
+            // STEP 1: Securely Create Order on Server
+            const order = await api.createPaymentOrder(bookingId);
+
+            const options = {
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+                amount: order.amount,
+                currency: order.currency,
+                name: "Room Booking System",
+                description: `Payment for ${room.name} (${duration} hrs)`,
+                image: "https://example.com/your_logo",
+                order_id: order.id,
+
+                // STEP 2: Handle Payment Success -> Verify on Server
+                handler: async function (response) {
+                    try {
                         toast({
                             title: "Processing Payment...",
-                            description: "Please wait while we verify your transaction.",
+                            description: "Verifying secure signature with server...",
                         });
-                        console.log("Verifying payment for booking:", bookingId);
-                        await api.processPayment(bookingId); // Updates status to 'paid'
-                        console.log("Payment verification successful");
-                    }
-                    setStep('success');
-                    toast({
-                        title: "Payment Successful!",
-                        description: "Your room has been booked.",
-                        className: "bg-green-600 text-white border-none",
-                    });
-                    if (onSuccess) onSuccess();
-                } catch (e) {
-                    console.error("Payment Verification Failed", e);
-                    toast({
-                        variant: "destructive",
-                        title: "Verification Failed",
-                        description: "Payment successful, but verification failed. Please contact support.",
-                    });
-                    setError("Payment successful, but verification failed. Please contact support.");
-                }
-            },
-            prefill: {
-                name: user?.user_metadata?.full_name || user?.email,
-                email: user?.email,
-                contact: "" // Can add phone if available
-            },
-            notes: {
-                booking_id: bookingId,
-                room_id: room.id
-            },
-            theme: {
-                color: "#2563eb"
-            },
-            modal: {
-                ondismiss: function () {
-                    setLoading(false);
-                    toast({
-                        description: "Payment cancelled.",
-                    });
-                }
-            }
-        };
 
-        try {
+                        // Call Edge Function to verify signature and update DB
+                        await api.verifyPayment(bookingId, {
+                            order_id: response.razorpay_order_id,
+                            payment_id: response.razorpay_payment_id,
+                            signature: response.razorpay_signature
+                        });
+
+                        setStep('success');
+                        toast({
+                            title: "Payment Successful!",
+                            description: "Your room has been booked.",
+                            className: "bg-green-600 text-white border-none",
+                        });
+                        if (onSuccess) onSuccess();
+
+                    } catch (e) {
+                        console.error("Verification Failed:", e);
+                        toast({
+                            variant: "destructive",
+                            title: "Verification Failed",
+                            description: "Payment succeeded but server verification failed. Please contact support.",
+                        });
+                        setError("Payment verification failed.");
+                    }
+                },
+                prefill: {
+                    name: user?.user_metadata?.full_name || user?.email,
+                    email: user?.email,
+                },
+                theme: {
+                    color: "#2563eb"
+                },
+                modal: {
+                    ondismiss: function () {
+                        setLoading(false);
+                        toast({
+                            description: "Payment cancelled.",
+                        });
+                    }
+                }
+            };
+
             const rzp1 = new window.Razorpay(options);
             rzp1.on('payment.failed', function (response) {
                 const errorMsg = response.error.description || "Payment failed";
@@ -271,9 +271,10 @@ export default function BookingForm({ room, onSuccess }) {
                 setLoading(false);
             });
             rzp1.open();
+
         } catch (err) {
-            console.error("Razorpay Error:", err);
-            const msg = "Failed to load payment gateway. Please check connection.";
+            console.error("Payment Error:", err);
+            const msg = "Failed to initiate payment. Please try again.";
             setError(msg);
             toast({
                 variant: "destructive",
