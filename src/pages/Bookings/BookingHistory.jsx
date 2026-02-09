@@ -19,11 +19,21 @@ const BookingTimer = ({ createdAt, onExpire }) => {
 
     useEffect(() => {
         const calculateTimeLeft = () => {
+            if (!createdAt) return;
+
             const created = new Date(createdAt).getTime();
             const now = new Date().getTime();
-            // 10 minutes expiration from creation
-            const expiresAt = created + (10 * 60 * 1000);
-            const difference = expiresAt - now;
+            // 15 minutes expiration
+            const EXPIRATION_MS = 15 * 60 * 1000;
+            const expiresAt = created + EXPIRATION_MS;
+
+            let difference = expiresAt - now;
+
+            // CLAMPING: If difference is mysteriously larger than 15 mins (e.g. clock skew), 
+            // cap it at 15 mins so user doesn't see "57 minutes".
+            if (difference > EXPIRATION_MS) {
+                difference = EXPIRATION_MS;
+            }
 
             if (difference > 0) {
                 const minutes = Math.floor((difference / 1000 / 60) % 60);
@@ -43,12 +53,13 @@ const BookingTimer = ({ createdAt, onExpire }) => {
     }, [createdAt, onExpire]);
 
     if (isExpired) {
-        return <span className="text-red-600 font-bold">Expired</span>;
+        return <span className="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">Booking Expired</span>;
     }
 
     return (
-        <span className="text-amber-700 font-mono font-bold bg-amber-100 px-2 py-0.5 rounded">
-            Expires in {timeLeft}
+        <span className="text-amber-700 font-mono font-bold bg-amber-100 px-2 py-0.5 rounded flex items-center gap-1.5 w-fit">
+            <Clock className="w-3.5 h-3.5" />
+            Pay within {timeLeft}
         </span>
     );
 };
