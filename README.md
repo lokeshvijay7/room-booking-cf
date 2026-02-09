@@ -6,6 +6,14 @@ A modern, full-stack application for booking meeting rooms and workspaces. Built
 ![React](https://img.shields.io/badge/React-18.0-blue)
 ![Supabase](https://img.shields.io/badge/Supabase-Auth%20%26%20DB-green)
 
+## 🌐 Live Demo
+👉 **[Click here to view the Live Application](https://room-booking-roan.vercel.app/)**
+
+## 📸 Demo Preview
+
+![Room Booking Home Page](https://github.com/lokeshvijay7/room-booking-cf/demo-image.png)
+
+
 ## ✨ Features
 
 ### 🚀 Core Functionality
