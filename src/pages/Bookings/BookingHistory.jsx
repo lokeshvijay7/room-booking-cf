@@ -17,23 +17,27 @@ const BookingTimer = ({ createdAt, onExpire }) => {
     const [timeLeft, setTimeLeft] = useState('');
     const [isExpired, setIsExpired] = useState(false);
 
+    // Normalize creation time once on mount to handle clock skew
+    const [targetTime] = useState(() => {
+        if (!createdAt) return null;
+        const created = new Date(createdAt).getTime();
+        const now = new Date().getTime();
+        const EXPIRATION_MS = 15 * 60 * 1000;
+
+        // If created is in the future (skew), start timer from NOW.
+        // If created is waaay in the past (expired), keep it as is.
+        if (created > now) {
+            return now + EXPIRATION_MS;
+        }
+        return created + EXPIRATION_MS;
+    });
+
     useEffect(() => {
+        if (!targetTime) return;
+
         const calculateTimeLeft = () => {
-            if (!createdAt) return;
-
-            const created = new Date(createdAt).getTime();
             const now = new Date().getTime();
-            // 15 minutes expiration
-            const EXPIRATION_MS = 15 * 60 * 1000;
-            const expiresAt = created + EXPIRATION_MS;
-
-            let difference = expiresAt - now;
-
-            // CLAMPING: If difference is mysteriously larger than 15 mins (e.g. clock skew), 
-            // cap it at 15 mins so user doesn't see "57 minutes".
-            if (difference > EXPIRATION_MS) {
-                difference = EXPIRATION_MS;
-            }
+            const difference = targetTime - now;
 
             if (difference > 0) {
                 const minutes = Math.floor((difference / 1000 / 60) % 60);
@@ -50,7 +54,7 @@ const BookingTimer = ({ createdAt, onExpire }) => {
         calculateTimeLeft(); // initial call
 
         return () => clearInterval(timer);
-    }, [createdAt, onExpire]);
+    }, [targetTime, onExpire]);
 
     if (isExpired) {
         return <span className="text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded">Booking Expired</span>;
